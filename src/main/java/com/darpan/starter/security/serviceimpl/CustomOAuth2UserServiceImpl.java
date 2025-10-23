@@ -9,7 +9,7 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.Map;
 
 @Service
@@ -58,7 +58,7 @@ public class CustomOAuth2UserServiceImpl extends DefaultOAuth2UserService {
                     u.setName(name);
                     u.setEmail(email);
                     u.setAvatarUrl(avatar);
-                    u.setLastAccess(OffsetDateTime.now());
+                    u.setLastAccess(Instant.now());
                     return oAuthUserRepository.save(u);
                 })
                 .orElseGet(() -> {
@@ -69,7 +69,7 @@ public class CustomOAuth2UserServiceImpl extends DefaultOAuth2UserService {
                     u.setName(name);
                     u.setEmail(email);
                     u.setAvatarUrl(avatar);
-                    u.setLastAccess(OffsetDateTime.now());
+                    u.setLastAccess(Instant.now());
                     return oAuthUserRepository.save(u);
                 });
 

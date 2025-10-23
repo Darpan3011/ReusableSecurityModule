@@ -9,7 +9,7 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.Map;
 
 @Service
@@ -44,7 +44,7 @@ public class CustomOidcUserServiceImpl extends OidcUserService {
                     u.setName(name);
                     u.setEmail(email);
                     u.setAvatarUrl(avatar);
-                    u.setLastAccess(OffsetDateTime.now());
+                    u.setLastAccess(Instant.now());
                     return oAuthUserRepository.save(u);
                 })
                 .orElseGet(() -> {
@@ -55,7 +55,7 @@ public class CustomOidcUserServiceImpl extends OidcUserService {
                     u.setName(name);
                     u.setEmail(email);
                     u.setAvatarUrl(avatar);
-                    u.setLastAccess(OffsetDateTime.now());
+                    u.setLastAccess(Instant.now());
                     return oAuthUserRepository.save(u);
                 });
 

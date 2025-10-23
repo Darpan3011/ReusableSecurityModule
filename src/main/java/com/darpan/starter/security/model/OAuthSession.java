@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "oauth_sessions")
@@ -25,9 +25,9 @@ public class OAuthSession {
     @JoinColumn(name = "user_id")
     private OAuthUser user;
 
-    private OffsetDateTime loginTime;
+    private Instant loginTime;
 
-    private OffsetDateTime logoutTime;
+    private Instant logoutTime;
 
     private String ipAddress;
 

@@ -10,7 +10,7 @@ import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 
 @Slf4j
 @Component
@@ -29,7 +29,7 @@ public class OAuthLogoutHandler implements LogoutHandler {
         }
 
         sessionRepo.findBySessionId(sessionId).ifPresentOrElse(session -> {
-            session.setLogoutTime(OffsetDateTime.now());
+            session.setLogoutTime(Instant.now());
             sessionRepo.save(session);
             log.info("Updated logoutTime for session {}", sessionId);
         }, () -> log.warn("No DB session found for id {}", sessionId));

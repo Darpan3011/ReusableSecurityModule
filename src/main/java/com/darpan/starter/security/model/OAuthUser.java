@@ -3,7 +3,7 @@ package com.darpan.starter.security.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "oauth_users")
@@ -25,5 +25,5 @@ public class OAuthUser {
     private String name;
     private String email;             // may be null
     private String avatarUrl;
-    private OffsetDateTime lastAccess;
+    private Instant lastAccess;
 }

@@ -11,7 +11,7 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Component;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 
 @Slf4j
 @Component
@@ -54,13 +54,13 @@ public class OAuth2LoginSuccessListener {
         OAuthSession session = new OAuthSession();
         session.setUser(user);
         session.setSessionId(sessionId);
-        session.setLoginTime(OffsetDateTime.now());
+        session.setLoginTime(Instant.now());
         session.setIpAddress(ip);
         session.setUserAgent(userAgent);
 
         sessionRepo.save(session);
 
-        user.setLastAccess(OffsetDateTime.now());
+        user.setLastAccess(Instant.now());
         userRepo.save(user);
 
         log.info("OAuth login success for [{}] ({}), sessionId={}", user.getUsername(), provider, sessionId);
