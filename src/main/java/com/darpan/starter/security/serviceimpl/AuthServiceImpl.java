@@ -1,8 +1,10 @@
 package com.darpan.starter.security.serviceimpl;
 
 import com.darpan.starter.security.jwt.JwtTokenProvider;
+import com.darpan.starter.security.model.Role;
 import com.darpan.starter.security.model.Token;
 import com.darpan.starter.security.model.User;
+import com.darpan.starter.security.repository.RoleRepository;
 import com.darpan.starter.security.repository.TokenRepository;
 import com.darpan.starter.security.repository.UserRepository;
 import com.darpan.starter.security.service.AuthService;
@@ -14,6 +16,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Optional;
 
 @Slf4j
@@ -24,21 +28,25 @@ public class AuthServiceImpl implements AuthService {
     private final TokenRepository tokenRepo;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
+    private final RoleRepository roleRepo;
 
-    public AuthServiceImpl(UserRepository userRepo, TokenRepository tokenRepo, PasswordEncoder passwordEncoder, JwtTokenProvider tokenProvider) {
+    public AuthServiceImpl(UserRepository userRepo, TokenRepository tokenRepo, PasswordEncoder passwordEncoder, JwtTokenProvider tokenProvider, RoleRepository roleRepository) {
         this.userRepo = userRepo;
         this.tokenRepo = tokenRepo;
         this.passwordEncoder = passwordEncoder;
         this.tokenProvider = tokenProvider;
+        this.roleRepo = roleRepository;
     }
 
     @Override
     @Transactional
     public User register(RegisterRequest req) {
+        Role defaultRole = roleRepo.findByName("ROLE_USER").orElseGet(() -> roleRepo.save(new Role("ROLE_USER")));
         User u = new User();
         u.setUsername(req.getUsername());
         u.setEmail(req.getEmail());
         u.setPassword(passwordEncoder.encode(req.getPassword()));
+        u.setRoles(new HashSet<>(Collections.singleton(defaultRole))); // defaultRole = ROLE_USER entity
         return userRepo.save(u);
     }
 

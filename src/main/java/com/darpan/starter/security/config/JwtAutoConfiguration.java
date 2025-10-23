@@ -3,6 +3,7 @@ package com.darpan.starter.security.config;
 import com.darpan.starter.security.filter.JwtAuthFilter;
 import com.darpan.starter.security.jwt.JwtTokenProvider;
 import com.darpan.starter.security.properties.SecurityProperties;
+import com.darpan.starter.security.repository.RoleRepository;
 import com.darpan.starter.security.repository.TokenRepository;
 import com.darpan.starter.security.repository.UserRepository;
 import com.darpan.starter.security.service.AuthService;
@@ -34,7 +35,7 @@ public class JwtAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public AuthService authService(UserRepository userRepo, TokenRepository tokenRepo, PasswordEncoder encoder, JwtTokenProvider tokenProvider) {
-        return new AuthServiceImpl(userRepo, tokenRepo, encoder, tokenProvider);
+    public AuthService authService(UserRepository userRepo, TokenRepository tokenRepo, PasswordEncoder encoder, JwtTokenProvider tokenProvider, RoleRepository roleRepository) {
+        return new AuthServiceImpl(userRepo, tokenRepo, encoder, tokenProvider, roleRepository);
     }
 }
