@@ -14,7 +14,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "users")
+@Table(name = "users", indexes = { @Index(columnList = "username", unique = true) })
 @Getter
 @Setter
 @NoArgsConstructor
@@ -46,6 +46,10 @@ public class User implements UserDetails {
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
     private Set<Role> roles = new HashSet<>();
+    private boolean accountNonExpired = true;
+    private boolean accountNonLocked = true;
+    private boolean credentialsNonExpired = true;
+    private boolean enabled = true;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -53,8 +57,8 @@ public class User implements UserDetails {
     }
     @Override public String getPassword(){ return password; }
     @Override public String getUsername(){ return username; }
-    @Override public boolean isAccountNonExpired(){ return true; }
-    @Override public boolean isAccountNonLocked(){ return true; }
-    @Override public boolean isCredentialsNonExpired(){ return true; }
-    @Override public boolean isEnabled(){ return true; }
+    @Override public boolean isAccountNonExpired() { return accountNonExpired; }
+    @Override public boolean isAccountNonLocked() { return accountNonLocked; }
+    @Override public boolean isCredentialsNonExpired() { return credentialsNonExpired; }
+    @Override public boolean isEnabled() { return enabled; }
 }

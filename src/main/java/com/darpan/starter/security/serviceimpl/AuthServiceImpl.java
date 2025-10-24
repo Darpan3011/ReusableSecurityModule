@@ -41,7 +41,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public User register(RegisterRequest req) {
-        Role defaultRole = roleRepo.findByName("ROLE_USER").orElseGet(() -> roleRepo.save(new Role("ROLE_USER")));
+        Role defaultRole = roleRepo.findByName("USER").orElseGet(() -> roleRepo.save(new Role("USER")));
         User u = new User();
         u.setUsername(req.getUsername());
         u.setEmail(req.getEmail());
@@ -94,7 +94,7 @@ public class AuthServiceImpl implements AuthService {
     // removed empty key method; provider is the single source for JWT parsing
 
     @Override
-    public Optional<User> findByUsername(String username) {
-        return userRepo.findByUsername(username);
+    public User findByUsername(String username) {
+        return userRepo.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
     }
 }

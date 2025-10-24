@@ -1,6 +1,9 @@
 package com.darpan.starter.security.jwt;
 
+import com.darpan.starter.security.model.User;
 import com.darpan.starter.security.properties.SecurityProperties;
+import com.darpan.starter.security.repository.UserRepository;
+import com.darpan.starter.security.service.AuthService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwtException;
@@ -27,8 +30,9 @@ public class JwtTokenProvider {
     private final Key key;
     private final long validityMillis;
     private final long refreshValidityMillis;
+    private final UserRepository userRepository;
 
-    public JwtTokenProvider(SecurityProperties props) {
+    public JwtTokenProvider(SecurityProperties props, UserRepository userRepository) {
         System.out.println(">>> Inside JwtTokenProvider constructor <<<");
         System.out.println(">>> props.jwtSecret = " + props.getJwtSecret());
         if (props.getJwtSecret() == null || props.getJwtSecret().length() < 32) {
@@ -37,6 +41,7 @@ public class JwtTokenProvider {
         this.key = Keys.hmacShaKeyFor(props.getJwtSecret().getBytes(StandardCharsets.UTF_8));
         this.validityMillis = props.getJwtExpirationSeconds() * 1000L;
         this.refreshValidityMillis = props.getRefreshTokenExpirationSeconds() * 1000L;
+        this.userRepository = userRepository;
     }
 
     public String generateAccessToken(String username, Long userId) {
@@ -79,9 +84,7 @@ public class JwtTokenProvider {
         Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
         String username = claims.getSubject();
         // build minimal UserDetails with username; parent app should resolve full user as needed
-        UserDetails user = org.springframework.security.core.userdetails.User.withUsername(username)
-                .password("[PROTECTED]").authorities("ROLE_USER").accountExpired(false).accountLocked(false).credentialsExpired(false).disabled(false)
-                .build();
+        User user = userRepository.findByUsername(username).get();
         return new UsernamePasswordAuthenticationToken(user, token, user.getAuthorities());
     }
 

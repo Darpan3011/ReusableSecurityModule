@@ -14,6 +14,7 @@ public class SecurityProperties {
 
     private Cors cors = new Cors();
     private List<String> publicEndpoints = new ArrayList<>();
+    private List<RoleEndpoint> roleEndpoints = new ArrayList<>();
     private boolean csrfEnabled = false;
 
     // toggles
@@ -37,5 +38,11 @@ public class SecurityProperties {
         private String exposedHeaders = "*";
         private boolean allowCredentials = true;
         private long maxAge = 3600;
+    }
+
+    @Data
+    public static class RoleEndpoint {
+        private String pattern;
+        private List<String> roles = new ArrayList<>();
     }
 }

@@ -23,8 +23,8 @@ public class JwtAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public JwtTokenProvider jwtTokenProvider(SecurityProperties props) {
-        return new JwtTokenProvider(props);
+    public JwtTokenProvider jwtTokenProvider(SecurityProperties props, UserRepository userRepository) {
+        return new JwtTokenProvider(props, userRepository);
     }
 
     @Bean

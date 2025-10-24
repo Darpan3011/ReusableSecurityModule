@@ -11,5 +11,5 @@ public interface AuthService {
     User register(RegisterRequest req);
     AuthResponse login(LoginRequest req);
     AuthResponse refresh(String refreshToken);
-    Optional<User> findByUsername(String username);
+    User findByUsername(String username);
 }

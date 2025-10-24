@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -49,7 +50,17 @@ public class SecurityConfig {
         }
 
         http.authorizeHttpRequests(auth -> {
-            auth.requestMatchers(props.getPublicEndpoints().toArray(new String[0])).permitAll().anyRequest().authenticated();
+            props.getPublicEndpoints().forEach(endpoint ->
+                    auth.requestMatchers(endpoint).permitAll()
+            );
+
+            // Role-based endpoints
+            props.getRoleEndpoints().forEach(re ->
+                    auth.requestMatchers(re.getPattern())
+                            .hasAnyAuthority(re.getRoles().toArray(new String[0]))
+            );
+
+            auth.anyRequest().authenticated();
         });
 
         if (jwtAuthFilter != null) {
@@ -63,11 +74,24 @@ public class SecurityConfig {
     public SecurityFilterChain oauth2FilterChain(HttpSecurity http, CustomOAuth2UserServiceImpl customOAuth2UserServiceImpl, CustomOidcUserServiceImpl customOidcUserServiceImpl, OAuth2LoginSuccessListener oAuthLoginSuccessHandler, OAuthLogoutHandler oAuthLogoutHandler) throws Exception {
         if (!props.isCsrfEnabled()) http.csrf(AbstractHttpConfigurer::disable);
         http.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED));
-        if (props.getCors().isEnabled()) http.cors();
+        if (props.getCors().isEnabled()) http.cors(Customizer.withDefaults());
 
-        http.authorizeHttpRequests(auth -> auth
-                        .requestMatchers(props.getPublicEndpoints().toArray(new String[0])).permitAll()
-                        .anyRequest().authenticated()
+        http.authorizeHttpRequests(auth ->
+                    {
+                        auth.requestMatchers("/oauth2/**", "/login/oauth2/**", "/login/**", "/login/oauth/**").permitAll();
+
+                        props.getPublicEndpoints().forEach(endpoint ->
+                                auth.requestMatchers(endpoint).permitAll()
+                        );
+
+                        // Role-based endpoints
+                        props.getRoleEndpoints().forEach(re ->
+                                auth.requestMatchers(re.getPattern())
+                                        .hasAnyAuthority(re.getRoles().toArray(new String[0]))
+                        );
+
+                        auth.anyRequest().authenticated();
+                    }
                 )
                 .oauth2Login(o -> o.userInfoEndpoint(ui ->
                                 ui.userService(customOAuth2UserServiceImpl)
