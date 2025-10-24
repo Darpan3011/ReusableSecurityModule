@@ -46,17 +46,16 @@ public class AuthServiceImpl implements AuthService {
         u.setUsername(req.getUsername());
         u.setEmail(req.getEmail());
         u.setPassword(passwordEncoder.encode(req.getPassword()));
-        u.setRoles(new HashSet<>(Collections.singleton(defaultRole))); // defaultRole = ROLE_USER entity
+        u.setRoles(new HashSet<>(Collections.singleton(defaultRole))); // defaultRole = USER entity
         return userRepo.save(u);
     }
 
     @Override
     @Transactional
     public AuthResponse login(LoginRequest req) {
-        Optional<User> userOpt = userRepo.findByUsername(req.getUsername());
-        if (userOpt.isEmpty()) throw new RuntimeException("Invalid credentials");
-        User user = userOpt.get();
+        User user = userRepo.findByUsername(req.getUsername()).orElseThrow(() -> new RuntimeException("Invalid credentials"));
         if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) throw new RuntimeException("Invalid credentials");
+        tokenRepo.deactivateOldTokens(user.getId());
 
         String access = tokenProvider.generateAccessToken(user.getUsername(), user.getId());
         String refresh = tokenProvider.generateRefreshToken(user.getUsername(), user.getId());
@@ -67,28 +66,46 @@ public class AuthServiceImpl implements AuthService {
         token.setRefreshToken(refresh);
         token.setAccessTokenExpiry(Instant.now().plusMillis(tokenProvider.getAccessExpiryMillis()));
         token.setRefreshTokenExpiry(Instant.now().plusMillis(tokenProvider.getRefreshExpiryMillis()));
-        tokenRepo.save(token);
+        token.setActive(true);
 
-        return new AuthResponse(access, refresh, tokenProvider.getAccessExpiryMillis()/1000);
+        tokenRepo.save(token);
+        return new AuthResponse(access, refresh, tokenProvider.getAccessExpiryMillis() / 1000);
     }
 
     @Override
     @Transactional
     public AuthResponse refresh(String refreshToken) {
-        Token token = tokenRepo.findByRefreshToken(refreshToken).orElseThrow(() -> new RuntimeException("Invalid refresh token"));
+        Token oldToken = tokenRepo.findByRefreshToken(refreshToken).orElseThrow(() -> new RuntimeException("Invalid refresh token"));
+        if (!oldToken.isActive()) throw new RuntimeException("Inactive token");
         if (!tokenProvider.validateToken(refreshToken)) {
-            tokenRepo.delete(token);
+            oldToken.setActive(false);
+            tokenRepo.save(oldToken);
             throw new RuntimeException("Expired refresh token");
         }
-        // parse username from refresh token using provider's configured key
+
+        // parse username from refresh token
         String username = tokenProvider.getUsername(refreshToken);
-        Long uid = token.getUserId();
+        Long uid = oldToken.getUserId();
+
+        // generate new tokens
         String newAccess = tokenProvider.generateAccessToken(username, uid);
-        token.setAccessToken(newAccess);
-        token.setAccessTokenExpiry(Instant.now().plusMillis(tokenProvider.getAccessExpiryMillis()));
-        Token token1 = tokenRepo.save(token);
-        log.error("SAved token: {}", token1.getRefreshToken());
-        return new AuthResponse(newAccess, refreshToken, tokenProvider.getAccessExpiryMillis()/1000);
+        String newRefresh = tokenProvider.generateRefreshToken(username, uid);
+
+        // deactivate the old one
+        oldToken.setActive(false);
+        tokenRepo.save(oldToken);
+
+        // create a new entry
+        Token newToken = new Token();
+        newToken.setUserId(uid);
+        newToken.setAccessToken(newAccess);
+        newToken.setRefreshToken(newRefresh);
+        newToken.setAccessTokenExpiry(Instant.now().plusMillis(tokenProvider.getAccessExpiryMillis()));
+        newToken.setRefreshTokenExpiry(Instant.now().plusMillis(tokenProvider.getRefreshExpiryMillis()));
+        newToken.setActive(true);
+        tokenRepo.save(newToken);
+
+        return new AuthResponse(newAccess, newRefresh, tokenProvider.getAccessExpiryMillis() / 1000);
     }
 
     // removed empty key method; provider is the single source for JWT parsing

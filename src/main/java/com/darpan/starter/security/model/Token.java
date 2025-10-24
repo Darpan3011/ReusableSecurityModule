@@ -30,18 +30,11 @@ public class Token {
     private Instant refreshTokenExpiry;
 
     private Instant createdAt;
-//    private Instant updatedAt;
+    private boolean active = true;
 
     @PrePersist
     public void onCreate() {
         this.createdAt = Instant.now();
-//        this.updatedAt = Instant.now();
     }
-
-//    @PreUpdate
-//    public void onUpdate() {
-//        this.updatedAt = Instant.now();
-//    }
-
 
 }
