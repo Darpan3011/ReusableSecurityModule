@@ -1,5 +1,7 @@
 package com.darpan.starter.security.config;
 
+import com.darpan.starter.security.errorhandler.JwtAccessDeniedHandler;
+import com.darpan.starter.security.errorhandler.JwtAuthenticationEntryPoint;
 import com.darpan.starter.security.eventlistener.OAuth2LoginSuccessListener;
 import com.darpan.starter.security.eventlistener.OAuthLogoutHandler;
 import com.darpan.starter.security.filter.JwtAuthFilter;
@@ -20,6 +22,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 
+import java.util.Arrays;
+
 @Configuration(proxyBeanMethods = false)
 @EnableWebSecurity
 public class SecurityConfig {
@@ -31,7 +35,7 @@ public class SecurityConfig {
 
     @Bean
     @ConditionalOnProperty(prefix = "security.jwt", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public SecurityFilterChain jwtFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain jwtFilterChain(HttpSecurity http, JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint, JwtAccessDeniedHandler jwtAccessDeniedHandler) throws Exception {
         if (!props.isCsrfEnabled()) http.csrf(AbstractHttpConfigurer::disable);
         http.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
@@ -39,11 +43,10 @@ public class SecurityConfig {
             CorsConfigurationSource source = request -> {
                 CorsConfiguration c = new CorsConfiguration();
                 c.setAllowCredentials(props.getCors().isAllowCredentials());
-                c.addAllowedOrigin(props.getCors().getAllowedOrigins());
-                c.addAllowedHeader(props.getCors().getAllowedHeaders());
-                c.addAllowedMethod(props.getCors().getAllowedMethods());
-                c.setMaxAge(props.getCors().getMaxAge());
-                c.addExposedHeader(props.getCors().getExposedHeaders());
+                c.setAllowedOrigins(Arrays.asList(props.getCors().getAllowedOrigins().split(",")));
+                c.setAllowedMethods(Arrays.asList(props.getCors().getAllowedMethods().split(",")));
+                c.setAllowedHeaders(Arrays.asList(props.getCors().getAllowedHeaders().split(",")));
+                c.setExposedHeaders(Arrays.asList(props.getCors().getExposedHeaders().split(",")));
                 return c;
             };
             http.cors(cors -> cors.configurationSource(source));
@@ -62,6 +65,12 @@ public class SecurityConfig {
 
             auth.anyRequest().authenticated();
         });
+
+        http.exceptionHandling(ex -> ex
+                .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                .accessDeniedHandler(jwtAccessDeniedHandler)
+        );
+
 
         if (jwtAuthFilter != null) {
             http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
