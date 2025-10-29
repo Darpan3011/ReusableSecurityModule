@@ -17,7 +17,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnProperty(prefix = "security.jwt", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(prefix = "security.jwt", name = "enabled", havingValue = "true")
 @EnableConfigurationProperties(SecurityProperties.class)
 public class JwtAutoConfiguration {
 
