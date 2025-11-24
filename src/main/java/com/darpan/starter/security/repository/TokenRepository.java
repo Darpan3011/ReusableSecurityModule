@@ -16,4 +16,8 @@ public interface TokenRepository extends JpaRepository<Token, Long> {
     @Modifying
     @Query("UPDATE Token t SET t.active = false WHERE t.userId = :userId AND t.active = true")
     void deactivateOldTokens(Long userId);
+
+    @Modifying
+    @Query("DELETE FROM Token t WHERE t.userId = :userId")
+    void deleteByUserId(Long userId);
 }

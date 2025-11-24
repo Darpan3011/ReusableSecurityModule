@@ -9,9 +9,12 @@ import com.darpan.starter.security.repository.TokenRepository;
 import com.darpan.starter.security.repository.UserRepository;
 import com.darpan.starter.security.service.AuthService;
 import com.darpan.starter.security.service.dto.AuthResponse;
+import com.darpan.starter.security.service.dto.ChangePasswordRequest;
 import com.darpan.starter.security.service.dto.LoginRequest;
 import com.darpan.starter.security.service.dto.RegisterRequest;
+import com.darpan.starter.security.service.enums.AuthEnum;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +26,12 @@ import java.util.Optional;
 @Slf4j
 @Service
 public class AuthServiceImpl implements AuthService {
+
+    @Value("${security.oauth2.enabled:false}")
+    private boolean oauth2Enabled;
+
+    @Value("${security.jwt.enabled:true}")
+    private boolean jwtEnabled;
 
     private final UserRepository userRepo;
     private final TokenRepository tokenRepo;
@@ -41,6 +50,8 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public User register(RegisterRequest req) {
+        if (userRepo.findByUsername(req.getUsername()).isPresent()) throw new RuntimeException("Username already exists");
+        if (userRepo.findByEmail(req.getEmail()).isPresent()) throw new RuntimeException("Email already exists");
         Role defaultRole = roleRepo.findByName("USER").orElseGet(() -> roleRepo.save(new Role("USER")));
         User u = new User();
         u.setUsername(req.getUsername());
@@ -113,5 +124,39 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public User findByUsername(String username) {
         return userRepo.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(ChangePasswordRequest request) {
+        Optional<User> maybeUser = userRepo.findByEmail(request.getEmail());
+        // fail fast if user not found - avoid ambiguous behavior
+        User user = maybeUser.orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
+
+        // verify current password
+        boolean matches = passwordEncoder.matches(request.getCurrentPassword(), user.getPassword());
+        if (!matches) {
+            // you can throw a custom exception mapped to 403
+            throw new IllegalArgumentException("Invalid credentials");
+        }
+
+        // optionally enforce password policy here (denylist, complexity)
+        String encoded = passwordEncoder.encode(request.getNewPassword());
+        user.setPassword(encoded);
+        userRepo.save(user);
+
+        if (tokenRepo != null) {
+            try {
+                tokenRepo.deleteByUserId(user.getId());
+            } catch (Exception ignored) {
+                log.error("Failed to delete tokens for user {}", user.getId());
+            }
+        }
+    }
+
+    @Override
+    public AuthEnum getAuthType() {
+        if (oauth2Enabled) return AuthEnum.OAUTH2;
+        return AuthEnum.JWT;
     }
 }
