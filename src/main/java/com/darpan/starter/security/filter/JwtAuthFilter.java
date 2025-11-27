@@ -1,6 +1,7 @@
 package com.darpan.starter.security.filter;
 
 import com.darpan.starter.security.jwt.JwtTokenProvider;
+import com.darpan.starter.security.properties.SecurityProperties;
 import com.darpan.starter.security.service.TokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -18,10 +19,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider tokenProvider;
     private final TokenService tokenService;
+    private final SecurityProperties securityProperties;
 
-    public JwtAuthFilter(JwtTokenProvider tokenProvider, TokenService tokenService) {
+    public JwtAuthFilter(JwtTokenProvider tokenProvider, TokenService tokenService, SecurityProperties securityProperties) {
         this.tokenProvider = tokenProvider;
         this.tokenService = tokenService;
+        this.securityProperties = securityProperties;
     }
 
     @Override
@@ -29,10 +32,23 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String path = request.getRequestURI();
-        if (path.startsWith("/auth/register") ||
-                path.startsWith("/auth/login") ||
-                path.startsWith("/auth/refresh2") ||  // ← ADD THIS
-                path.startsWith("/auth/auth-type") ) {
+        
+        // Check if path matches any public endpoint pattern
+        boolean isPublic = securityProperties.getPublicEndpoints().stream()
+                .anyMatch(endpoint -> {
+                    // Handle wildcard matching simple implementation
+                    if (endpoint.endsWith("/**")) {
+                        String base = endpoint.substring(0, endpoint.length() - 3);
+                        return path.startsWith(base);
+                    }
+                    return path.equals(endpoint);
+                });
+
+        // Also skip OAuth2 endpoints
+        if (isPublic || 
+            path.startsWith("/oauth2/") || 
+            path.startsWith("/login/oauth2/") || 
+            path.startsWith("/login/")) {
             filterChain.doFilter(request, response);
             return;
         }

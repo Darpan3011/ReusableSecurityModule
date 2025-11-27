@@ -34,11 +34,7 @@ public class AuthServiceImpl implements AuthService {
     @Value("${security.jwt.register.password.message:Follow valid password pattern}")
     private String passwordPatternMessage;
 
-    @Value("${security.oauth2.enabled:false}")
-    private boolean oauth2Enabled;
-
-    @Value("${security.jwt.enabled:true}")
-    private boolean jwtEnabled;
+    // Toggles removed - both enabled by default
 
     private final UserRepository userRepo;
     private final TokenRepository tokenRepo;
@@ -164,7 +160,6 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthEnum getAuthType() {
-        if (oauth2Enabled) return AuthEnum.OAUTH2;
-        return AuthEnum.JWT;
+        return AuthEnum.BOTH;
     }
 }

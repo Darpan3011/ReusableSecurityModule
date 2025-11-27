@@ -17,9 +17,7 @@ public class SecurityProperties {
     private List<RoleEndpoint> roleEndpoints = new ArrayList<>();
     private boolean csrfEnabled = false;
 
-    // toggles
-    private boolean oauth2Enabled = false;
-    private boolean jwtEnabled = true;
+    // toggles removed - both enabled by default
 
     // jwt specific
     private String jwtSecret = "ReplaceWithStrongSecretAtLeast32CharsLong____";
