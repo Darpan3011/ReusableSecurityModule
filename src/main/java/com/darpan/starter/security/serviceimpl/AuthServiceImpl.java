@@ -22,10 +22,17 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Service
 public class AuthServiceImpl implements AuthService {
+
+    @Value("${security.jwt.register.password.pattern}")
+    private String passwordPattern;
+
+    @Value("${security.jwt.register.password.message:Follow valid password pattern}")
+    private String passwordPatternMessage;
 
     @Value("${security.oauth2.enabled:false}")
     private boolean oauth2Enabled;
@@ -50,6 +57,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public User register(RegisterRequest req) {
+        if (!Pattern.matches(passwordPattern, req.getPassword())) throw new RuntimeException(passwordPatternMessage);
         if (userRepo.findByUsername(req.getUsername()).isPresent()) throw new RuntimeException("Username already exists");
         if (userRepo.findByEmail(req.getEmail()).isPresent()) throw new RuntimeException("Email already exists");
         Role defaultRole = roleRepo.findByName("USER").orElseGet(() -> roleRepo.save(new Role("USER")));
