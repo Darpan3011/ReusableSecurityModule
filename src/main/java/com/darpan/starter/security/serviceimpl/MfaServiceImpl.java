@@ -32,14 +32,13 @@ public class MfaServiceImpl implements MfaService {
     private final SecurityProperties securityProperties;
 
     @Override
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public void generateAndSendCode(Long userId, MfaCodeType type) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         // Delete any existing unverified codes for this user and type
-        mfaCodeRepository.findByUserIdAndTypeAndVerifiedFalse(userId, type)
-                .ifPresent(mfaCodeRepository::delete);
+        mfaCodeRepository.deleteByUserIdAndTypeAndVerifiedFalse(userId, type);
 
         // Generate random code
         String code = generateRandomCode();
