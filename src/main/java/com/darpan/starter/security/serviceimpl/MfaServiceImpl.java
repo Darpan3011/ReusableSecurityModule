@@ -1,13 +1,17 @@
 package com.darpan.starter.security.serviceimpl;
 
 import com.communication.service.EmailService;
+import com.darpan.starter.security.jwt.JwtTokenProvider;
 import com.darpan.starter.security.model.MfaCode;
 import com.darpan.starter.security.model.MfaCodeType;
+import com.darpan.starter.security.model.Token;
 import com.darpan.starter.security.model.User;
 import com.darpan.starter.security.properties.SecurityProperties;
 import com.darpan.starter.security.repository.MfaCodeRepository;
+import com.darpan.starter.security.repository.TokenRepository;
 import com.darpan.starter.security.repository.UserRepository;
 import com.darpan.starter.security.service.MfaService;
+import com.darpan.starter.security.service.dto.AuthResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +19,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Random;
 
@@ -30,6 +35,8 @@ public class MfaServiceImpl implements MfaService {
     private final UserRepository userRepository;
     private final EmailService emailService;
     private final SecurityProperties securityProperties;
+    private final TokenRepository tokenRepository;
+    private final JwtTokenProvider tokenProvider;
 
     @Override
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
@@ -152,6 +159,68 @@ public class MfaServiceImpl implements MfaService {
         userRepository.save(user);
         
         log.info("MFA {} for user {}", enabled ? "enabled" : "disabled", userId);
+    }
+
+    @Override
+    @Transactional
+    public boolean verifyEmailAndActivate(Long userId, String code) {
+        // Verify the code
+        boolean verified = verifyCode(userId, code, MfaCodeType.REGISTRATION);
+        
+        if (!verified) {
+            throw new RuntimeException("Invalid or expired code");
+        }
+        
+        return true;
+    }
+
+    @Override
+    @Transactional
+    public AuthResponse verifyMfaAndGenerateTokens(Long userId, String code) {
+        // Verify the MFA code
+        boolean verified = verifyCode(userId, code, MfaCodeType.LOGIN);
+        
+        if (!verified) {
+            throw new RuntimeException("Invalid or expired code");
+        }
+
+        // Get user
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Deactivate old tokens
+        tokenRepository.deactivateOldTokens(userId);
+
+        // Generate new tokens
+        String access = tokenProvider.generateAccessToken(user.getUsername(), user.getId());
+        String refresh = tokenProvider.generateRefreshToken(user.getUsername(), user.getId());
+
+        // Save token
+        Token token = new Token();
+        token.setUserId(user.getId());
+        token.setAccessToken(access);
+        token.setRefreshToken(refresh);
+        token.setAccessTokenExpiry(Instant.now().plusMillis(tokenProvider.getAccessExpiryMillis()));
+        token.setRefreshTokenExpiry(Instant.now().plusMillis(tokenProvider.getRefreshExpiryMillis()));
+        token.setActive(true);
+
+        tokenRepository.save(token);
+
+        log.info("MFA verified and tokens generated for user {}", userId);
+
+        return new AuthResponse(access, refresh, tokenProvider.getAccessExpiryMillis() / 1000);
+    }
+
+    @Override
+    @Transactional
+    public void toggleMfaForUser(String username, boolean enabled) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        user.setMfaEnabled(enabled);
+        userRepository.save(user);
+        
+        log.info("MFA {} for user {}", enabled ? "enabled" : "disabled", username);
     }
 
     @Override

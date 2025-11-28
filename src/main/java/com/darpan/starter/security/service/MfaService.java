@@ -28,6 +28,29 @@ public interface MfaService {
     boolean verifyCode(Long userId, String code, MfaCodeType type);
 
     /**
+     * Verify email code and activate user account
+     * @param userId User ID
+     * @param code The 6-digit code
+     * @return true if verification successful
+     */
+    boolean verifyEmailAndActivate(Long userId, String code);
+
+    /**
+     * Verify MFA code and generate authentication tokens
+     * @param userId User ID
+     * @param code The 6-digit code
+     * @return AuthResponse with tokens
+     */
+    com.darpan.starter.security.service.dto.AuthResponse verifyMfaAndGenerateTokens(Long userId, String code);
+
+    /**
+     * Toggle MFA for a user by username
+     * @param username Username
+     * @param enabled Enable or disable MFA
+     */
+    void toggleMfaForUser(String username, boolean enabled);
+
+    /**
      * Resend the MFA code (generates new code if expired)
      * @param userId User ID
      * @param type Type of MFA code (REGISTRATION or LOGIN)
