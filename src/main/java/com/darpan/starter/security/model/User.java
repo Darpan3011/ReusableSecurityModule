@@ -46,6 +46,14 @@ public class User implements UserDetails {
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
     private Set<Role> roles = new HashSet<>();
+    
+    // MFA fields
+    @Column(nullable = false)
+    private boolean mfaEnabled = false;
+    
+    @Column(nullable = false)
+    private boolean emailVerified = false;
+    
     private boolean accountNonExpired = true;
     private boolean accountNonLocked = true;
     private boolean credentialsNonExpired = true;

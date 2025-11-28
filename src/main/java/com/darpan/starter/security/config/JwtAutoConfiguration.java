@@ -7,6 +7,7 @@ import com.darpan.starter.security.repository.RoleRepository;
 import com.darpan.starter.security.repository.TokenRepository;
 import com.darpan.starter.security.repository.UserRepository;
 import com.darpan.starter.security.service.AuthService;
+import com.darpan.starter.security.service.MfaService;
 import com.darpan.starter.security.service.TokenService;
 import com.darpan.starter.security.serviceimpl.AuthServiceImpl;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -34,7 +35,7 @@ public class JwtAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public AuthService authService(UserRepository userRepo, TokenRepository tokenRepo, PasswordEncoder encoder, JwtTokenProvider tokenProvider, RoleRepository roleRepository) {
-        return new AuthServiceImpl(userRepo, tokenRepo, encoder, tokenProvider, roleRepository);
+    public AuthService authService(UserRepository userRepo, TokenRepository tokenRepo, PasswordEncoder encoder, JwtTokenProvider tokenProvider, RoleRepository roleRepository, MfaService mfaService) {
+        return new AuthServiceImpl(userRepo, tokenRepo, encoder, tokenProvider, roleRepository, mfaService);
     }
 }

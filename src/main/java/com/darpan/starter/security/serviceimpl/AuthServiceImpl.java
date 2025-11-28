@@ -8,6 +8,7 @@ import com.darpan.starter.security.repository.RoleRepository;
 import com.darpan.starter.security.repository.TokenRepository;
 import com.darpan.starter.security.repository.UserRepository;
 import com.darpan.starter.security.service.AuthService;
+import com.darpan.starter.security.service.MfaService;
 import com.darpan.starter.security.service.dto.AuthResponse;
 import com.darpan.starter.security.service.dto.ChangePasswordRequest;
 import com.darpan.starter.security.service.dto.LoginRequest;
@@ -41,13 +42,15 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
     private final RoleRepository roleRepo;
+    private final MfaService mfaService;
 
-    public AuthServiceImpl(UserRepository userRepo, TokenRepository tokenRepo, PasswordEncoder passwordEncoder, JwtTokenProvider tokenProvider, RoleRepository roleRepository) {
+    public AuthServiceImpl(UserRepository userRepo, TokenRepository tokenRepo, PasswordEncoder passwordEncoder, JwtTokenProvider tokenProvider, RoleRepository roleRepository, MfaService mfaService) {
         this.userRepo = userRepo;
         this.tokenRepo = tokenRepo;
         this.passwordEncoder = passwordEncoder;
         this.tokenProvider = tokenProvider;
         this.roleRepo = roleRepository;
+        this.mfaService = mfaService;
     }
 
     @Override
@@ -62,7 +65,22 @@ public class AuthServiceImpl implements AuthService {
         u.setEmail(req.getEmail());
         u.setPassword(passwordEncoder.encode(req.getPassword()));
         u.setRoles(new HashSet<>(Collections.singleton(defaultRole))); // defaultRole = USER entity
-        return userRepo.save(u);
+        
+        // Set account as disabled until email is verified
+        u.setEnabled(false);
+        u.setEmailVerified(false);
+        
+        User savedUser = userRepo.save(u);
+        
+        // Send verification email
+        try {
+            mfaService.generateAndSendCode(savedUser.getId(), com.darpan.starter.security.model.MfaCodeType.REGISTRATION);
+        } catch (Exception e) {
+            log.error("Failed to send verification email for user {}", savedUser.getId(), e);
+            // Don't fail registration, but log the error
+        }
+        
+        return savedUser;
     }
 
     @Override
@@ -70,6 +88,20 @@ public class AuthServiceImpl implements AuthService {
     public AuthResponse login(LoginRequest req) {
         User user = userRepo.findByUsername(req.getUsername()).orElseThrow(() -> new RuntimeException("Invalid credentials"));
         if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) throw new RuntimeException("Invalid credentials");
+        
+        // Check if email is verified
+        if (!user.isEmailVerified()) {
+            throw new RuntimeException("EMAIL_NOT_VERIFIED:" + user.getId());
+        }
+        
+        // Check if MFA is enabled
+        if (user.isMfaEnabled()) {
+            // Generate and send MFA code
+            mfaService.generateAndSendCode(user.getId(), com.darpan.starter.security.model.MfaCodeType.LOGIN);
+            throw new RuntimeException("MFA_REQUIRED:" + user.getId());
+        }
+        
+        // Proceed with normal login
         tokenRepo.deactivateOldTokens(user.getId());
 
         String access = tokenProvider.generateAccessToken(user.getUsername(), user.getId());

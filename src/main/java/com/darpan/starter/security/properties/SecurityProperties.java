@@ -27,6 +27,10 @@ public class SecurityProperties {
     // oauth2 redirect
     private String oauth2SuccessRedirectUrl = "http://localhost:3000/";
 
+    // MFA settings
+    private int mfaCodeExpirationMinutes = 10;
+    private int mfaCodeLength = 6;
+
     @Data
     public static class Cors {
         private boolean enabled = true;

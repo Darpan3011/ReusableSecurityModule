@@ -7,5 +7,6 @@ public record CurrentUser(
         String authType,
         String username,              // for JWT/UserDetails
         Map<String, Object> attributes, // for OAuth2 (GitHub profile etc.)
-        List<String> authorities
+        List<String> authorities,
+        boolean mfaEnabled
 ) {}

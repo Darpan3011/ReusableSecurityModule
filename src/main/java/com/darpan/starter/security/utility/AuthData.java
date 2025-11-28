@@ -20,14 +20,18 @@ public class AuthData {
         if (principal instanceof org.springframework.security.oauth2.core.user.OAuth2User oAuth2User) {
             // OAuth2 session flow
             String name = oAuth2User.getName(); // provider user id (e.g., GitHub id)
-            return new CurrentUser("OAUTH2", name, oAuth2User.getAttributes(), authorities);
+            return new CurrentUser("OAUTH2", name, oAuth2User.getAttributes(), authorities, false);
         } else if (principal instanceof org.springframework.security.core.userdetails.UserDetails userDetails) {
             // JWT (or form login with UserDetails)
-            return new CurrentUser("USER_DETAILS", userDetails.getUsername(), Collections.emptyMap(), authorities);
+            boolean mfaEnabled = false;
+            if (userDetails instanceof com.darpan.starter.security.model.User user) {
+                mfaEnabled = user.isMfaEnabled();
+            }
+            return new CurrentUser("USER_DETAILS", userDetails.getUsername(), Collections.emptyMap(), authorities, mfaEnabled);
         } else if (principal instanceof java.security.Principal p) {
-            return new CurrentUser("PRINCIPAL", p.getName(), Collections.emptyMap(), authorities);
+            return new CurrentUser("PRINCIPAL", p.getName(), Collections.emptyMap(), authorities, false);
         } else {
-            return new CurrentUser(principal.getClass().getSimpleName(), String.valueOf(principal), Collections.emptyMap(), authorities);
+            return new CurrentUser(principal.getClass().getSimpleName(), String.valueOf(principal), Collections.emptyMap(), authorities, false);
         }
     }
 }
