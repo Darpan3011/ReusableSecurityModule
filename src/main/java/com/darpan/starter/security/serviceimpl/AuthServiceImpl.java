@@ -74,7 +74,7 @@ public class AuthServiceImpl implements AuthService {
         
         // Send verification email
         try {
-            mfaService.generateAndSendCode(savedUser.getId(), com.darpan.starter.security.model.MfaCodeType.REGISTRATION);
+            mfaService.generateAndSendCodeWithUser(savedUser, com.darpan.starter.security.model.MfaCodeType.REGISTRATION);
         } catch (Exception e) {
             log.error("Failed to send verification email for user {}", savedUser.getId(), e);
             // Don't fail registration, but log the error

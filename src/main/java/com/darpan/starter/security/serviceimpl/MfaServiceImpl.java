@@ -53,11 +53,53 @@ public class MfaServiceImpl implements MfaService {
                 .build();
 
         mfaCodeRepository.save(mfaCode);
+        mfaCodeRepository.flush(); // Force immediate commit to database
 
-        // Send email
-        sendCodeEmail(user, code, type);
+        log.info("MFA code generated for user {} (type: {})", userId, type);
 
-        log.info("MFA code generated and sent for user {} (type: {})", userId, type);
+        // Send email AFTER saving to database (outside transaction)
+        // If email fails, code is still in DB and user can resend
+        try {
+            sendCodeEmail(user, code, type);
+            log.info("MFA code email sent to user {} (type: {})", userId, type);
+        } catch (Exception e) {
+            log.error("Failed to send MFA code email for user {}, but code was saved to database", userId, e);
+            // Don't throw exception - code is already saved, user can resend if needed
+        }
+    }
+
+    @Override
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    public void generateAndSendCodeWithUser(User user, MfaCodeType type) {
+        // Delete any existing unverified codes for this user and type
+        mfaCodeRepository.deleteByUserIdAndTypeAndVerifiedFalse(user.getId(), type);
+
+        // Generate random code
+        String code = generateRandomCode();
+
+        // Create and save MFA code
+        MfaCode mfaCode = MfaCode.builder()
+                .userId(user.getId())
+                .code(code)
+                .type(type)
+                .expiresAt(LocalDateTime.now().plusMinutes(securityProperties.getMfaCodeExpirationMinutes()))
+                .verified(false)
+                .build();
+
+        mfaCodeRepository.save(mfaCode);
+        mfaCodeRepository.flush(); // Force immediate commit to database
+
+        log.info("MFA code generated for user {} (type: {})", user.getId(), type);
+
+        // Send email AFTER saving to database (outside transaction)
+        // If email fails, code is still in DB and user can resend
+        try {
+            sendCodeEmail(user, code, type);
+            log.info("MFA code email sent to user {} (type: {})", user.getId(), type);
+        } catch (Exception e) {
+            log.error("Failed to send MFA code email for user {}, but code was saved to database", user.getId(), e);
+            // Don't throw exception - code is already saved, user can resend if needed
+        }
     }
 
     @Override
