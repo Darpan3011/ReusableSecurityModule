@@ -4,7 +4,9 @@ import com.darpan.starter.security.model.CurrentUser;
 import org.springframework.security.core.Authentication;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class AuthData {
 
@@ -24,10 +26,12 @@ public class AuthData {
         } else if (principal instanceof org.springframework.security.core.userdetails.UserDetails userDetails) {
             // JWT (or form login with UserDetails)
             boolean mfaEnabled = false;
+            Map<String, Object> attributes = new HashMap<>();
             if (userDetails instanceof com.darpan.starter.security.model.User user) {
                 mfaEnabled = user.isMfaEnabled();
+                attributes.put("email", user.getEmail());
             }
-            return new CurrentUser("USER_DETAILS", userDetails.getUsername(), Collections.emptyMap(), authorities, mfaEnabled);
+            return new CurrentUser("USER_DETAILS", userDetails.getUsername(), attributes, authorities, mfaEnabled);
         } else if (principal instanceof java.security.Principal p) {
             return new CurrentUser("PRINCIPAL", p.getName(), Collections.emptyMap(), authorities, false);
         } else {

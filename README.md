@@ -56,7 +56,7 @@ security.cors.max-age=3600
 # --- Public Endpoints (no authentication required) ---
 security.public-endpoints[0]=/auth/register
 security.public-endpoints[1]=/auth/login
-security.public-endpoints[2]=/auth/refresh2/**
+security.public-endpoints[2]=/auth/refresh/**
 security.public-endpoints[3]=/auth/auth-type
 security.public-endpoints[4]=/auth/verify-email
 security.public-endpoints[5]=/auth/verify-mfa
@@ -282,7 +282,7 @@ After successful authentication, users are redirected to your configured success
 | `/auth/verify-email` | POST | Verify email with code | ❌ |
 | `/auth/verify-mfa` | POST | Verify MFA code during login | ❌ |
 | `/auth/resend-code` | POST | Resend verification/MFA code | ❌ |
-| `/auth/refresh2` | POST | Refresh access token | ❌ |
+| `/auth/refresh` | POST | Refresh access token | ❌ |
 | `/auth/me` | GET | Get current user info | ✅ |
 | `/auth/toggle-mfa` | POST | Enable/disable MFA | ✅ |
 | `/auth/change-password` | POST | Change user password | ✅ |
