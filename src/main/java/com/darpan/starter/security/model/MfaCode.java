@@ -1,5 +1,7 @@
 package com.darpan.starter.security.model;
 
+import com.darpan.starter.security.service.enums.MfaCodeType;
+import com.darpan.starter.security.service.enums.MfaDeliveryMethod;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -28,8 +30,12 @@ public class MfaCode {
     private String code;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 32)
     private MfaCodeType type;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 32)
+    private MfaDeliveryMethod deliveryMethod = MfaDeliveryMethod.EMAIL;
 
     @Column(nullable = false)
     private LocalDateTime expiresAt;

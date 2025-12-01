@@ -1,5 +1,6 @@
 package com.darpan.starter.security.model;
 
+import com.darpan.starter.security.service.enums.MfaDeliveryMethod;
 import jakarta.persistence.*;
 import lombok.*;
 import net.minidev.json.annotate.JsonIgnore;
@@ -53,6 +54,17 @@ public class User implements UserDetails {
     
     @Column(nullable = false)
     private boolean emailVerified = false;
+    
+    // Phone number and SMS MFA fields
+    @Column(nullable = true)
+    private String phoneNumber;
+    
+    @Column(nullable = false)
+    private boolean phoneNumberVerified = false;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private MfaDeliveryMethod mfaDeliveryMethod = MfaDeliveryMethod.EMAIL;
     
     private boolean accountNonExpired = true;
     private boolean accountNonLocked = true;

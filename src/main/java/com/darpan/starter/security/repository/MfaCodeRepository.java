@@ -1,7 +1,7 @@
 package com.darpan.starter.security.repository;
 
 import com.darpan.starter.security.model.MfaCode;
-import com.darpan.starter.security.model.MfaCodeType;
+import com.darpan.starter.security.service.enums.MfaCodeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;

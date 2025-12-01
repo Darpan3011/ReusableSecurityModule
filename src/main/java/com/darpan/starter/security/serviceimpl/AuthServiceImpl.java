@@ -14,6 +14,7 @@ import com.darpan.starter.security.service.dto.ChangePasswordRequest;
 import com.darpan.starter.security.service.dto.LoginRequest;
 import com.darpan.starter.security.service.dto.RegisterRequest;
 import com.darpan.starter.security.service.enums.AuthEnum;
+import com.darpan.starter.security.service.enums.MfaCodeType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -74,7 +75,7 @@ public class AuthServiceImpl implements AuthService {
         
         // Send verification email
         try {
-            mfaService.generateAndSendCodeWithUser(savedUser, com.darpan.starter.security.model.MfaCodeType.REGISTRATION);
+            mfaService.generateAndSendCodeWithUser(savedUser, MfaCodeType.REGISTRATION);
         } catch (Exception e) {
             log.error("Failed to send verification email for user {}", savedUser.getId(), e);
             // Don't fail registration, but log the error
@@ -96,9 +97,12 @@ public class AuthServiceImpl implements AuthService {
         
         // Check if MFA is enabled
         if (user.isMfaEnabled()) {
-            // Generate and send MFA code
-            mfaService.generateAndSendCode(user.getId(), com.darpan.starter.security.model.MfaCodeType.LOGIN);
-            throw new RuntimeException("MFA_REQUIRED:" + user.getId());
+            // Determine available methods
+            StringBuilder methods = new StringBuilder("EMAIL");
+            if (user.isPhoneNumberVerified()) {
+                methods.append(",SMS");
+            }
+            throw new RuntimeException("MFA_REQUIRED:" + user.getId() + ":" + methods.toString());
         }
         
         // Proceed with normal login
