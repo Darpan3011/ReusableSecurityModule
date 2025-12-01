@@ -33,8 +33,6 @@ public class JwtTokenProvider {
     private final UserRepository userRepository;
 
     public JwtTokenProvider(SecurityProperties props, UserRepository userRepository) {
-        System.out.println(">>> Inside JwtTokenProvider constructor <<<");
-        System.out.println(">>> props.jwtSecret = " + props.getJwtSecret());
         if (props.getJwtSecret() == null || props.getJwtSecret().length() < 32) {
             throw new IllegalArgumentException("JWT secret must be at least 32 characters");
         }
