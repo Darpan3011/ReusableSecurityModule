@@ -12,6 +12,8 @@ import com.darpan.security.service.MfaService;
 import com.darpan.security.service.dto.AuthResponse;
 import com.darpan.security.service.dto.ChangePasswordRequest;
 import com.darpan.security.service.dto.LoginRequest;
+import com.darpan.security.service.dto.LoginResult;
+import com.darpan.security.service.dto.MfaRequiredResponse;
 import com.darpan.security.service.dto.RegisterRequest;
 import com.darpan.security.service.enums.AuthEnum;
 import com.darpan.security.service.enums.MfaCodeType;
@@ -92,29 +94,37 @@ public class AuthServiceImpl implements AuthService {
      */
     @Override
     @Transactional
-    public AuthResponse login(LoginRequest req) {
-        User user = userRepo.findByUsername(req.getUsername()).orElseThrow(() -> new RuntimeException("Invalid credentials"));
-        if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) throw new RuntimeException("Invalid credentials");
-        
+    public LoginResult login(LoginRequest req) {
+        User user = userRepo.findByUsername(req.getUsername())
+                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
+        if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
+            throw new RuntimeException("Invalid credentials");
+        }
+
         // Check if email is verified
         if (!user.isEmailVerified()) {
-            throw new RuntimeException("EMAIL_NOT_VERIFIED:" + user.getId());
+            return LoginResult.emailNotVerified(user.getId());
         }
-        
+
         // Check if MFA is enabled
         if (user.isMfaEnabled()) {
-            // Determine available methods
-            StringBuilder methods = new StringBuilder("EMAIL");
-            String maskedEmail = maskEmail(user.getEmail());
-            String maskedPhone = "";
-
+            java.util.List<String> methods = new java.util.ArrayList<>();
+            methods.add("EMAIL");
             if (user.isPhoneNumberVerified()) {
-                methods.append(",SMS");
-                maskedPhone = maskPhoneNumber(user.getPhoneNumber());
+                methods.add("SMS");
             }
-            throw new RuntimeException("MFA_REQUIRED:" + user.getId() + ":" + methods.toString() + ":" + maskedEmail + ":" + maskedPhone);
+
+            MfaRequiredResponse mfa = MfaRequiredResponse.builder()
+                    .userId(user.getId())
+                    .message("Please select a verification method")
+                    .mfaRequired(true)
+                    .availableMethods(methods.toArray(new String[0]))
+                    .maskedEmail(maskEmail(user.getEmail()))
+                    .maskedPhone(maskPhoneNumber(user.getPhoneNumber()))
+                    .build();
+            return LoginResult.mfaRequired(mfa);
         }
-        
+
         // Proceed with normal login
         tokenRepo.deactivateOldTokens(user.getId());
 
@@ -128,9 +138,10 @@ public class AuthServiceImpl implements AuthService {
         token.setAccessTokenExpiry(Instant.now().plusMillis(tokenProvider.getAccessExpiryMillis()));
         token.setRefreshTokenExpiry(Instant.now().plusMillis(tokenProvider.getRefreshExpiryMillis()));
         token.setActive(true);
-
         tokenRepo.save(token);
-        return new AuthResponse(access, refresh, tokenProvider.getAccessExpiryMillis() / 1000);
+
+        AuthResponse authResponse = new AuthResponse(access, refresh, tokenProvider.getAccessExpiryMillis() / 1000);
+        return LoginResult.success(authResponse);
     }
 
     /**

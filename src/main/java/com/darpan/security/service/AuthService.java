@@ -4,6 +4,7 @@ import com.darpan.security.model.User;
 import com.darpan.security.service.dto.AuthResponse;
 import com.darpan.security.service.dto.ChangePasswordRequest;
 import com.darpan.security.service.dto.LoginRequest;
+import com.darpan.security.service.dto.LoginResult;
 import com.darpan.security.service.dto.RegisterRequest;
 import com.darpan.security.service.enums.AuthEnum;
 
@@ -18,9 +19,9 @@ public interface AuthService {
     /**
      * Authenticate a user and generate tokens
      * @param req Login request containing credentials
-     * @return AuthResponse containing JWT tokens
+     * @return LoginResult representing success, MFA required, or email not verified
      */
-    AuthResponse login(LoginRequest req);
+    LoginResult login(LoginRequest req);
 
     /**
      * Refresh access token using a refresh token
