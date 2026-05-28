@@ -1,465 +1,514 @@
-# 🛡️ Spring Security Starter Module
+# Security Module
 
-A comprehensive, production-ready security module for Spring Boot applications with support for **JWT authentication**, **OAuth2 login**, and **Multi-Factor Authentication (MFA)** via email.
+## Overview
+The Security Module is a comprehensive Spring Boot starter that provides robust authentication and authorization mechanisms. It includes JWT-based authentication, OAuth2 support (Google, GitHub, Azure), Multi-Factor Authentication (MFA), and role-based access control.
 
----
+## Features
+- **Authentication:** JWT (JSON Web Tokens) with refresh token rotation.
+- **OAuth2 Support:** Built-in integration for Google, GitHub, and Azure Login.
+- **Multi-Factor Authentication (MFA):** Supports Email and SMS (Twilio) verification.
+- **Authorization:** Role-Based Access Control (RBAC) and Method-Level Security.
+- **Security Best Practices:** Configurable CORS, Password strength validation, and secure password hashing.
 
-## 🚀 Features
+How to use this as a dependency in the project?
 
-- ✅ **Dual Authentication Support**: JWT and OAuth2 (Google, GitHub, Microsoft) work simultaneously
-- 🔐 **Multi-Factor Authentication (MFA)**: Email-based verification codes for enhanced security
-- 📧 **Email Verification**: Verify user email addresses during registration
-- 🔑 **JWT Token Management**: Access and refresh tokens with automatic rotation
-- 🌐 **OAuth2 Integration**: Ready-to-use Google, GitHub, and Microsoft login
-- ⚙️ **Configuration-Driven**: No hardcoding, fully customizable via properties
-- 🧩 **CORS & CSRF Protection**: Built-in security best practices
-- 🪶 **Plug-and-Play**: Works as a starter module or in multi-module projects
-- 👥 **Role-Based Access Control**: Fine-grained endpoint protection
+First download the GitHub repository and do mvn clean install (so jar will be created in the .m2 location)
 
----
+Add in the parent project’s pom.xml file:
 
-## 📦 Installation
-
-### 1. Add Dependency
-
-**If published as a JAR:**
 ```xml
 <dependency>
-  <groupId>com.darpan.starter</groupId>
-  <artifactId>security</artifactId>
-  <version>0.0.1</version>
+    <groupId>com.darpan</groupId>
+    <artifactId>darpan-security-starter</artifactId>
+    <version>2.0.0</version>
+</dependency>
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-oauth2-client</artifactId>
+</dependency>
+<dependency>
+    <groupId>com.mysql</groupId>
+    <artifactId>mysql-connector-j</artifactId>
+    <version>8.0.33</version>
+    <scope>runtime</scope>
 </dependency>
 ```
 
-**If included locally**, ensure your project recognizes the module in your multi-module build.
+Allow `@ComponentScan` in parent project’s main class
 
----
+```java
+@EntityScan("com.darpan.security.model")
+@EnableJpaRepositories("com.darpan.security.repository")
+@ComponentScan(basePackages = {
+        "com.darpan.security",
+        "com.darpan.communication"
+})
+@EnableMethodSecurity
+@EnableScheduling
+```
 
-### 2. Configure Your Application
+Add in properties or yml file in the parent project:
 
-Add the following to your `application.properties`:
+Setup database connectivity with spring datasource (url, username, password etc.)
+
+Updates properties related to CORS, endpoints that need to be public, role-based endpoints pattern authorization, OAUTH2 secrets, password pattern and its message, mail and sms provider details for MFA codes.
 
 ```properties
-# ============================================
-# SECURITY CONFIGURATION
-# ============================================
+# MySQL Database Configuration
+spring.datasource.url=
+spring.datasource.username=
+spring.datasource.password=
+spring.datasource.driver-class-name=
 
-# --- CORS Configuration ---
-security.cors.enabled=true
-security.cors.allowed-origins=http://localhost:3000
-security.cors.allowed-methods=*
-security.cors.allowed-headers=*
-security.cors.exposed-headers=*
-security.cors.allow-credentials=true
-security.cors.max-age=3600
+# JPA/Hibernate Configuration
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=false
+spring.jpa.properties.hibernate.format_sql=
+spring.jpa.properties.hibernate.dialect=
+spring.jpa.properties.hibernate.jdbc.time_zone=
 
-# --- Public Endpoints (no authentication required) ---
+security.cors.enabled=
+security.cors.allowed-origins=
+security.cors.allowed-methods=
+security.cors.allowed-headers=
+security.cors.exposed-headers=
+security.cors.allow-credentials=
+security.cors.max-age=
+
+// keep the below listed endpoints public based on the controller given below to work the flow as expected.
 security.public-endpoints[0]=/auth/register
 security.public-endpoints[1]=/auth/login
-security.public-endpoints[2]=/auth/refresh/**
+security.public-endpoints[2]=/auth/refresh
 security.public-endpoints[3]=/auth/auth-type
 security.public-endpoints[4]=/auth/verify-email
 security.public-endpoints[5]=/auth/verify-mfa
 security.public-endpoints[6]=/auth/resend-code
+security.public-endpoints[7]=/auth/send-mfa-code
+security.public-endpoints[8]=/auth/forgot-password
 
-# --- CSRF Configuration ---
-security.csrf.enabled=true
+security.public-endpoints[9]=/auth/reset-password
+security.csrf.enabled=
 
-# --- JWT Configuration ---
-security.jwt-secret=REPLACE_WITH_STRONG_SECRET_KEY_AT_LEAST_256_BITS
-security.jwt-expiration-seconds=900
-security.refresh-token-expiration-seconds=86400
+# JWT secret
+security.jwt-secret=
+security.jwt-expiration-seconds=
+security.refresh-token-expiration-seconds=
 
-# --- MFA Configuration ---
-security.mfa-code-expiration-minutes=10
-security.mfa-code-length=6
-
-# --- Role-Based Access Control ---
 security.role-endpoints[0].pattern=/admin/**
-security.role-endpoints[0].roles=ADMIN
+security.role-endpoints[0].roles=ADMIN,MANAGER,GITHUB_ADMIN
+
 security.role-endpoints[1].pattern=/user/**
-security.role-endpoints[1].roles=USER
+security.role-endpoints[1].roles=USER,OIDC_USER,GITHUB_USER
+
+# for github
+spring.security.oauth2.client.registration.github.client-id=
+spring.security.oauth2.client.registration.github.client-secret=
+spring.security.oauth2.client.registration.github.scope=
+spring.security.oauth2.client.registration.github.client-name=
+
+# for google
+spring.security.oauth2.client.registration.google.client-id=
+spring.security.oauth2.client.registration.google.client-secret=
+spring.security.oauth2.client.registration.google.scope=
+spring.security.oauth2.client.registration.google.redirect-uri=
+spring.security.oauth2.client.provider.google.issuer-uri=
+spring.security.oauth2.client.registration.google.client-name=
+
+# for azure
+spring.security.oauth2.client.registration.azure.client-id=
+spring.security.oauth2.client.registration.azure.client-secret=
+spring.security.oauth2.client.registration.azure.scope=
+spring.security.oauth2.client.registration.azure.redirect-uri=
+spring.security.oauth2.client.registration.azure.authorization-grant-type=
+spring.security.oauth2.client.registration.azure.client-name=
+
+# Explicit endpoints for multitenant + personal accounts
+spring.security.oauth2.client.provider.azure.authorization-uri=
+spring.security.oauth2.client.provider.azure.token-uri=
+spring.security.oauth2.client.provider.azure.user-info-uri=
+spring.security.oauth2.client.provider.azure.jwk-set-uri=
+spring.security.oauth2.client.provider.azure.user-name-attribute=
+
+security.jwt.register.password.pattern=^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,20}$
+security.jwt.register.password.message=Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.
+
+#----- Mail Configuration for MFA -----
+# Gmail provider
+messaging.mail.enabled=true
+messaging.mail.host=
+messaging.mail.port=
+messaging.mail.username= // email
+messaging.mail.password= // app password
+messaging.mail.starttls=
+messaging.mail.auth=
+messaging.mail.debug=
+
+#twilio // if using twilio for verification
+messaging.twilio.enabled=true
+messaging.twilio.sid=TWILIO_SID
+messaging.twilio.token=TWILIO_TOKEN
+messaging.twilio.from="+1659218253"
 ```
 
-### 3. OAuth2 Configuration (Optional)
+Define Controllers in the parents' project
 
-```properties
-# --- GitHub OAuth2 ---
-spring.security.oauth2.client.registration.github.client-id=YOUR_GITHUB_CLIENT_ID
-spring.security.oauth2.client.registration.github.client-secret=YOUR_GITHUB_CLIENT_SECRET
-spring.security.oauth2.client.registration.github.scope=read:user,user:email
-
-# --- Google OAuth2 ---
-spring.security.oauth2.client.registration.google.client-id=YOUR_GOOGLE_CLIENT_ID
-spring.security.oauth2.client.registration.google.client-secret=YOUR_GOOGLE_CLIENT_SECRET
-spring.security.oauth2.client.registration.google.scope=openid,profile,email
-spring.security.oauth2.client.provider.google.issuer-uri=https://accounts.google.com
-
-# --- Microsoft/Azure OAuth2 ---
-spring.security.oauth2.client.registration.azure.client-id=YOUR_AZURE_CLIENT_ID
-spring.security.oauth2.client.registration.azure.client-secret=YOUR_AZURE_CLIENT_SECRET
-spring.security.oauth2.client.registration.azure.scope=openid,profile,email
-spring.security.oauth2.client.registration.azure.redirect-uri={baseUrl}/login/oauth2/code/azure
-spring.security.oauth2.client.provider.azure.authorization-uri=https://login.microsoftonline.com/common/oauth2/v2.0/authorize
-spring.security.oauth2.client.provider.azure.token-uri=https://login.microsoftonline.com/common/oauth2/v2.0/token
-spring.security.oauth2.client.provider.azure.user-info-uri=https://graph.microsoft.com/oidc/userinfo
-spring.security.oauth2.client.provider.azure.jwk-set-uri=https://login.microsoftonline.com/common/discovery/v2.0/keys
-spring.security.oauth2.client.provider.azure.user-name-attribute=sub
-```
-
-### 4. Email Service Configuration
-
-MFA requires an email service. Configure your email provider:
-
-```properties
-# --- Email Configuration (for MFA codes) ---
-messaging.mail.host=smtp.gmail.com
-messaging.mail.port=587
-messaging.mail.username=your-email@gmail.com
-messaging.mail.password=your-app-password
-messaging.mail.properties.mail.smtp.auth=true
-messaging.mail.properties.mail.smtp.starttls.enable=true
-```
-
-> **Note**: For Gmail, use an [App Password](https://support.google.com/accounts/answer/185833) instead of your regular password.
-
----
-
-### 5. Update Your Application Class
-
-Ensure Spring scans the security module packages:
+### Auth Controller
 
 ```java
-package com.test.demo;
+import com.darpan.security.model.User;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+@Slf4j
+@RestController
+@RequestMapping("/auth")
+@RequiredArgsConstructor
+public class AuthController {
+    private final AuthService authService;
+    private final MfaService mfaService;
 
-@SpringBootApplication
-@EntityScan("com.darpan.starter.security.model")
-@EnableJpaRepositories("com.darpan.starter.security.repository")
-@ComponentScan(basePackages = {
-    "com.darpan.starter.security",
-    "com.test.demo"  // Your application package
-})
-@EnableMethodSecurity
-@EnableScheduling  // Required for MFA code cleanup
-public class DemoApplication {
-    public static void main(String[] args) {
-        SpringApplication.run(DemoApplication.class, args);
+    /**
+     * Register a new user
+     * @param user Registration request details
+     * @return Response entity with status and message
+     */
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody RegisterRequest user) {
+        model.com.darpan.security.User registeredUser = authService.register(user);
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                "message", "User registered successfully. Please check your email for verification code.",
+                "userId", registeredUser.getId()
+        ));
+    }
+
+    /**
+     * Authenticate user and return tokens
+     * @param request Login request details
+     * @return Response entity with tokens or error message
+     */
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+        try {
+            AuthResponse response = authService.login(request);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            String message = e.getMessage();
+
+            // Handle EMAIL_NOT_VERIFIED exception
+            if (message.startsWith("EMAIL_NOT_VERIFIED:")) {
+                Long userId = Long.parseLong(message.split(":")[1]);
+                return ResponseEntity.status(403).body(Map.of(
+                        "error", "EMAIL_NOT_VERIFIED",
+                        "message", "Please verify your email before logging in",
+                        "userId", userId
+                ));
+            }
+
+            // Handle MFA_REQUIRED exception
+            if (message.startsWith("MFA_REQUIRED:")) {
+                String[] parts = message.split(":");
+                Long userId = Long.parseLong(parts[1]);
+                String[] methods = parts.length > 2 ? parts[2].split(",") : new String[]{"EMAIL"};
+                String maskedEmail = parts.length > 3 ? parts[3] : "";
+                String maskedPhone = parts.length > 4 ? parts[4] : "";
+
+                return ResponseEntity.status(202).body(Map.of(
+                        "mfaRequired", true,
+                        "message", "Please select a verification method",
+                        "userId", userId,
+                        "availableMethods", methods,
+                        "maskedEmail", maskedEmail,
+                        "maskedPhone", maskedPhone
+                ));
+            }
+
+            // Handle other exceptions
+            return ResponseEntity.status(401).body(Map.of("error", message));
+        }
+    }
+
+    /**
+     * Send MFA code for login verification
+     * @param request Request containing userId and method
+     * @return Response entity with success message or error
+     */
+    @PostMapping("/send-mfa-code")
+    public ResponseEntity<?> sendMfaCode(@RequestBody Map<String, Object> request) {
+        try {
+            Long userId = Long.parseLong(request.get("userId").toString());
+            String methodStr = (String) request.get("method");
+            MfaDeliveryMethod method = MfaDeliveryMethod.valueOf(methodStr);
+
+            mfaService.generateAndSendCode(userId, MfaCodeType.LOGIN, method);
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Verification code sent via " + method
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // logout handled by Spring Security /logout endpoint
+
+    /**
+     * Refresh access token using refresh token
+     * @param refreshToken Refresh token string
+     * @return Response entity with new tokens
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshToken(@RequestParam("token") String refreshToken) {
+        try {
+            AuthResponse response = authService.refresh(refreshToken);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        }
+    }
+
+    /**
+     * Get current authenticated user details
+     * @param authentication Authentication object
+     * @return Response entity with user details
+     */
+    @GetMapping("/me")
+    public ResponseEntity<?> me(Authentication authentication) {
+        CurrentUser user = resolveCurrentUser(authentication);
+        if (user == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        return ResponseEntity.ok(user);
+    }
+
+    /**
+     * Change password for the current user
+     * @param req Change password request details
+     * @return Response entity with success message
+     */
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(@Valid @RequestBody ChangePasswordRequest req) {
+        authService.changePassword(req);
+        return ResponseEntity.ok("Password updated");
+    }
+
+    /**
+     * Get the authentication type configured
+     * @return Response entity with auth type
+     */
+    @GetMapping("/auth-type")
+    public ResponseEntity<Map<String, String>> authType() {
+        return ResponseEntity.ok(Map.of("Auth Type", authService.getAuthType().name()));
+    }
+
+    /**
+     * Initiate password reset process
+     * @param request Request containing email
+     * @return Response entity with success message or error
+     */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
+        try {
+            String email = request.get("email");
+            authService.forgotPassword(email);
+            return ResponseEntity.ok(Map.of("message", "Password reset code sent to your email"));
+        } catch (Exception e) {
+            log.error("Forgot password failed", e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Reset password using verification code
+     * @param request Request containing email, code, and newPassword
+     * @return Response entity with success message or error
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
+        try {
+            String email = request.get("email");
+            String code = request.get("code");
+            String newPassword = request.get("newPassword");
+
+            authService.resetPassword(email, code, newPassword);
+            return ResponseEntity.ok(Map.of("message", "Password reset successfully. You can now login with your new password."));
+        } catch (Exception e) {
+            log.error("Reset password failed", e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 }
 ```
 
----
+### MFA Controller
 
-## 🔐 Authentication Flows
+```java
+@Slf4j
+@RestController
+@RequestMapping("/auth")
+@RequiredArgsConstructor
+public class MfaController {
+    private final MfaService mfaService;
 
-### 1. JWT Registration & Login (with Email Verification)
+    /**
+     * Verify email address using the verification code
+     * @param request Request containing userId and code
+     * @return Response entity with success message or error
+     */
+    @PostMapping("/verify-email")
+    public ResponseEntity<?> verifyEmail(@RequestBody Map<String, Object> request) {
+        try {
+            Long userId = Long.valueOf(request.get("userId").toString());
+            String code = request.get("code").toString();
 
-#### **Step 1: Register**
-```http
-POST /auth/register
-Content-Type: application/json
-
-{
-  "username": "john_doe",
-  "email": "john@example.com",
-  "password": "SecurePass123!"
-}
-```
-
-**Response:**
-```json
-{
-  "id": 1,
-  "username": "john_doe",
-  "email": "john@example.com",
-  "enabled": false,
-  "emailVerified": false
-}
-```
-
-> User receives a 6-digit verification code via email.
-
-#### **Step 2: Verify Email**
-```http
-POST /auth/verify-email
-Content-Type: application/json
-
-{
-  "userId": 1,
-  "code": "123456"
-}
-```
-
-**Response:**
-```json
-{
-  "message": "Email verified successfully"
-}
-```
-
-#### **Step 3: Login**
-```http
-POST /auth/login
-Content-Type: application/json
-
-{
-  "username": "john_doe",
-  "password": "SecurePass123!"
-}
-```
-
-**Response (if MFA is disabled):**
-```json
-{
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
-
-**Response (if MFA is enabled):**
-```http
-HTTP/1.1 202 Accepted
-Content-Type: application/json
-
-{
-  "userId": 1,
-  "message": "MFA code sent to your email"
-}
-```
-
-> User receives a 6-digit MFA code via email.
-
-#### **Step 4: Verify MFA Code (if MFA enabled)**
-```http
-POST /auth/verify-mfa
-Content-Type: application/json
-
-{
-  "userId": 1,
-  "code": "654321"
-}
-```
-
-**Response:**
-```json
-{
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
-
----
-
-### 2. OAuth2 Login
-
-Simply redirect users to:
-- **Google**: `http://localhost:8080/oauth2/authorization/google`
-- **GitHub**: `http://localhost:8080/oauth2/authorization/github`
-- **Microsoft**: `http://localhost:8080/oauth2/authorization/azure`
-
-After successful authentication, users are redirected to your configured success URL with a session cookie.
-
-> **Note**: MFA is **not applicable** for OAuth2 users as providers (Google, GitHub, etc.) handle their own 2FA.
-
----
-
-## 🔑 API Endpoints
-
-### Authentication Endpoints
-
-| Endpoint | Method | Description | Auth Required |
-|----------|--------|-------------|---------------|
-| `/auth/register` | POST | Register new user | ❌ |
-| `/auth/login` | POST | Login with username/password | ❌ |
-| `/auth/verify-email` | POST | Verify email with code | ❌ |
-| `/auth/verify-mfa` | POST | Verify MFA code during login | ❌ |
-| `/auth/resend-code` | POST | Resend verification/MFA code | ❌ |
-| `/auth/refresh` | POST | Refresh access token | ❌ |
-| `/auth/me` | GET | Get current user info | ✅ |
-| `/auth/toggle-mfa` | POST | Enable/disable MFA | ✅ |
-| `/auth/change-password` | POST | Change user password | ✅ |
-| `/logout` | POST | Logout (clears session) | ✅ |
-
-### MFA Management
-
-#### **Toggle MFA**
-```http
-POST /auth/toggle-mfa
-Authorization: Bearer <access_token>
-Content-Type: application/json
-
-{
-  "enabled": true
-}
-```
-
-**Response:**
-```json
-{
-  "message": "MFA enabled successfully"
-}
-```
-
-#### **Resend Code**
-```http
-POST /auth/resend-code
-Content-Type: application/json
-
-{
-  "userId": 1,
-  "type": "LOGIN"  // or "REGISTRATION"
-}
-```
-
-**Response:**
-```json
-{
-  "message": "Code sent successfully"
-}
-```
-
----
-
-## 🗄️ Database Schema
-
-The module automatically creates the following tables:
-
-### `users`
-- `id` (Primary Key)
-- `username` (Unique)
-- `email` (Unique)
-- `password` (Hashed)
-- `enabled` (Boolean)
-- `email_verified` (Boolean)
-- `mfa_enabled` (Boolean)
-- Timestamps
-
-### `roles`
-- `id` (Primary Key)
-- `name` (e.g., "USER", "ADMIN")
-
-### `user_roles` (Join Table)
-- `user_id`
-- `role_id`
-
-### `tokens`
-- `id` (Primary Key)
-- `user_id` (Foreign Key)
-- `token` (Refresh Token)
-- `active` (Boolean)
-- Timestamps
-
-### `mfa_codes`
-- `id` (Primary Key)
-- `user_id` (Foreign Key)
-- `code` (6-digit code)
-- `type` (REGISTRATION or LOGIN)
-- `expires_at` (Timestamp)
-- `verified` (Boolean)
-- Timestamps
-
----
-
-## ⚙️ Configuration Reference
-
-### Security Properties
-
-| Property | Default | Description |
-|----------|---------|-------------|
-| `security.jwt-secret` | - | Secret key for JWT signing (required) |
-| `security.jwt-expiration-seconds` | 900 | Access token expiration (15 min) |
-| `security.refresh-token-expiration-seconds` | 86400 | Refresh token expiration (24 hours) |
-| `security.mfa-code-expiration-minutes` | 10 | MFA code validity period |
-| `security.mfa-code-length` | 6 | Length of MFA codes |
-| `security.cors.enabled` | false | Enable CORS |
-| `security.csrf.enabled` | true | Enable CSRF protection |
-| `security.public-endpoints` | [] | List of public endpoints |
-| `security.role-endpoints` | [] | Role-based endpoint protection |
-
----
-
-## 🔒 Security Best Practices
-
-1. **JWT Secret**: Use a strong, randomly generated secret (at least 256 bits)
-2. **HTTPS**: Always use HTTPS in production
-3. **Password Policy**: Enforce strong passwords (implemented via regex validation)
-4. **Token Rotation**: Refresh tokens are rotated on each use
-5. **MFA Codes**: Automatically expire after 10 minutes
-6. **Code Cleanup**: Expired MFA codes are cleaned up hourly via scheduled task
-7. **Transaction Isolation**: MFA code generation uses `REQUIRES_NEW` propagation to ensure codes are saved even if parent transactions roll back
-
----
-
-## 🎯 Frontend Integration Example
-
-### React/TypeScript Example
-
-```typescript
-// Login with MFA handling
-const login = async (username: string, password: string) => {
-  try {
-    const response = await axios.post('/auth/login', { username, password });
-    
-    if (response.status === 202) {
-      // MFA required
-      const { userId } = response.data;
-      // Redirect to MFA verification page
-      navigate(`/verify-mfa?userId=${userId}`);
-    } else {
-      // Login successful
-      const { accessToken, refreshToken } = response.data;
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
+            mfaService.verifyEmailAndActivate(userId, code);
+            return ResponseEntity.ok(Map.of("message", "Email verified successfully. You can now log in."));
+        } catch (Exception e) {
+            log.error("Email verification failed", e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
-  } catch (error) {
-    if (error.response?.status === 403) {
-      // Email not verified
-      const userId = error.response.data.message.split(':')[1];
-      navigate(`/verify-email?userId=${userId}`);
+
+    /**
+     * Verify MFA code for login and generate tokens
+     * @param request Request containing userId and code
+     * @return Response entity with auth tokens or error
+     */
+    @PostMapping("/verify-mfa")
+    public ResponseEntity<?> verifyMfa(@RequestBody Map<String, Object> request) {
+        try {
+            Long userId = Long.valueOf(request.get("userId").toString());
+            String code = request.get("code").toString();
+
+            AuthResponse authResponse = mfaService.verifyMfaAndGenerateTokens(userId, code);
+            return ResponseEntity.ok(authResponse);
+        } catch (Exception e) {
+            log.error("MFA verification failed", e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
-  }
-};
+
+    /**
+     * Resend verification code
+     * @param request Request containing userId and type
+     * @return Response entity with success message or error
+     */
+    @PostMapping("/resend-code")
+    public ResponseEntity<?> resendCode(@RequestBody Map<String, Object> request) {
+        try {
+            Long userId = Long.valueOf(request.get("userId").toString());
+            String typeStr = request.get("type").toString();
+            MfaCodeType type = MfaCodeType.valueOf(typeStr);
+
+            mfaService.resendCode(userId, type);
+            return ResponseEntity.ok(Map.of("message", "Code sent successfully"));
+        } catch (Exception e) {
+            log.error("Resend code failed", e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Toggle MFA for the current user
+     * @param request Request containing enabled status
+     * @param authentication Authentication object
+     * @return Response entity with new MFA status or error
+     */
+    @PostMapping("/toggle-mfa")
+    public ResponseEntity<?> toggleMfa(@RequestBody Map<String, Boolean> request, Authentication authentication) {
+        try {
+            if (authentication == null || !authentication.isAuthenticated()) {
+                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+            }
+
+            String username = authentication.getName();
+            boolean enabled = request.get("enabled");
+
+           mfaService.toggleMfaForUser(username, enabled);
+
+            return ResponseEntity.ok(Map.of("mfaEnabled", enabled, "message", "MFA " + (enabled ? "enabled" : "disabled") + " successfully"));
+        } catch (Exception e) {
+            log.error("Toggle MFA failed", e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+}
 ```
 
----
+### Profile Controller
 
-## 🛠️ Troubleshooting
+```java
+@Slf4j
+@RestController
+@RequestMapping("/profile")
+@RequiredArgsConstructor
+public class ProfileController {
+    private final MfaService mfaService;
 
-### Common Issues
+    /**
+     * Set phone number for the current user
+     * @param request Request containing phone number
+     * @param authentication Authentication object
+     * @return Response entity with success message or error
+     */
+    @PostMapping("/set-phone")
+    public ResponseEntity<?> setPhoneNumber(@RequestBody SetPhoneRequest request, Authentication authentication) {
+        try {
+            CurrentUser currentUser = resolveCurrentUser(authentication);
+            if (currentUser == null) {
+                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+            }
 
-**1. "User not found" during registration**
-- Ensure `@EnableScheduling` is added to your main application class
-- Check that email service is properly configured
+            mfaService.setPhoneNumberByUsername(currentUser.username(), request.getPhoneNumber());
 
-**2. MFA codes not being saved**
-- Verify `@Modifying` and `@Transactional` annotations are present on repository delete methods
-- Check database connection
+            return ResponseEntity.ok(Map.of("message", "Phone number set successfully. Verification code sent via SMS."));
+        } catch (Exception e) {
+            log.error("Set phone number failed", e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 
-**3. OAuth2 login not working**
-- Verify client IDs and secrets are correct
-- Ensure redirect URIs match OAuth provider configuration
-- Check that the OAuth provider is properly configured in Google/GitHub/Microsoft console
+    /**
+     * Verify phone number using verification code
+     * @param request Request containing verification code
+     * @param authentication Authentication object
+     * @return Response entity with success message or error
+     */
+    @PostMapping("/verify-phone")
+    public ResponseEntity<?> verifyPhoneNumber(@RequestBody VerifyPhoneRequest request, Authentication authentication) {
+        try {
+            CurrentUser currentUser = resolveCurrentUser(authentication);
+            if (currentUser == null) {
+                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+            }
 
-**4. CORS errors**
-- Add your frontend URL to `security.cors.allowed-origins`
-- Ensure `security.cors.allow-credentials=true` if using cookies
+            boolean verified = mfaService.verifyPhoneNumberByUsername(currentUser.username(), request.getCode());
 
----
+            if (verified) {
+                return ResponseEntity.ok(Map.of("message", "Phone number verified successfully"));
+            } else {
+                return ResponseEntity.badRequest().body(Map.of("error", "Verification failed"));
+            }
+        } catch (Exception e) {
+            log.error("Phone verification failed", e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 
-## 📝 License
+    /**
+     * Get phone status for the current user
+     * @param authentication Authentication object
+     * @return Response entity with phone status details
+     */
+    @GetMapping("/phone-status")
+    public ResponseEntity<?> getPhoneStatus(Authentication authentication) {
+        try {
+            CurrentUser currentUser = resolveCurrentUser(authentication);
+            if (currentUser == null) {
+                return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+            }
 
-This module is part of a private Spring Boot starter collection.
-
----
-
-## 🤝 Contributing
-
-For issues or feature requests, please contact the module maintainer.
+            PhoneStatusResponse response = mfaService.getPhoneStatusByUsername(currentUser.username());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Get phone status failed", e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+}
+```

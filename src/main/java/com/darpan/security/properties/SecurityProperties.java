@@ -1,0 +1,51 @@
+package com.darpan.security.properties;
+
+import lombok.Data;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Validated
+@ConfigurationProperties(prefix = "security")
+@Data
+public class SecurityProperties {
+
+    private Cors cors = new Cors();
+    private List<String> publicEndpoints = new ArrayList<>();
+    private List<RoleEndpoint> roleEndpoints = new ArrayList<>();
+    private boolean csrfEnabled = false;
+
+    // toggles removed - both enabled by default
+
+    // jwt specific
+    private String jwtSecret = "ReplaceWithStrongSecretAtLeast32CharsLong____";
+    private long jwtExpirationSeconds = 3600;
+    private long refreshTokenExpirationSeconds = 86400;
+
+    // oauth2 redirect
+    private String oauth2SuccessRedirectUrl = "http://localhost:3000/";
+
+    // MFA settings
+    private int mfaCodeExpirationMinutes = 10;
+    private int mfaCodeLength = 6;
+    private String mfaProvider = "twilio";
+
+    @Data
+    public static class Cors {
+        private boolean enabled = true;
+        private String allowedOrigins = "http://localhost:3000";
+        private String allowedMethods = "*";
+        private String allowedHeaders = "*";
+        private String exposedHeaders = "*";
+        private boolean allowCredentials = true;
+        private long maxAge = 3600;
+    }
+
+    @Data
+    public static class RoleEndpoint {
+        private String pattern;
+        private List<String> roles = new ArrayList<>();
+    }
+}

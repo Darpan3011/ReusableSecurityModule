@@ -1,1 +1,1 @@
-com.darpan.starter.security.config.JwtAutoConfiguration
+com.darpan.security.config.JwtAutoConfiguration
