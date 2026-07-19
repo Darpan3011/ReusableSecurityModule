@@ -7,6 +7,9 @@ import org.springframework.validation.annotation.Validated;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.stereotype.Component;
+
+@Component
 @Validated
 @ConfigurationProperties(prefix = "security")
 @Data
